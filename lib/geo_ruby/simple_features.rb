@@ -6,6 +6,7 @@ module GeoRuby
       envelope
       geometry_collection
       geometry_factory
+      grid_contourer
       helper
       line_string
       linear_ring

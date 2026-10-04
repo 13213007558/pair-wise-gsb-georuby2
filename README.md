@@ -93,6 +93,26 @@ Checking if a Point is inside a Polygon:
     polygon = Polygon.from_coordinates([[[0,0],[0,1],[1,1],[1,0]]],4326)
     polygon.contains_point?(point)
 
+Regular-grid contours
+---------------------
+
+Generate bilinear contour geometry from a regular matrix. Rows increase in Y
+and columns increase in X. Shared grid edges create one intersection Point,
+and ambiguous saddle cells use the asymptotic decider. `nil`, `NaN`, or a
+configured missing value makes a cell inactive.
+
+    values = [
+      [-1, -1],
+      [ 1,  1]
+    ]
+    contourer = RegularGridContourer.new(values, 0, 0, 1, 1, missing_value: -9999)
+    result = contourer.contour(0)
+    result.line_strings  # open contours
+    result.linear_rings  # closed contours
+
+When a grid vertex equals the level, it is used as the contour node; when the
+level exactly reaches a saddle, the result contains the two crossing branches.
+
 Input and output
 ----------------
 
