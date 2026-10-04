@@ -4,6 +4,7 @@ module GeoRuby
       geometry
       circle
       envelope
+      funnel
       geometry_collection
       geometry_factory
       helper
