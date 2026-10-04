@@ -93,6 +93,13 @@ Checking if a Point is inside a Polygon:
     polygon = Polygon.from_coordinates([[[0,0],[0,1],[1,1],[1,0]]],4326)
     polygon.contains_point?(point)
 
+Tightening a route through an ordered corridor of portals:
+
+    start_point = Point.from_x_y(0, 0)
+    end_point = Point.from_x_y(10, 0)
+    portals = [[Point.from_x_y(2, -2), Point.from_x_y(2, 2)], ...]
+    line = FunnelPath.shortest_path(start_point, end_point, portals)
+
 Input and output
 ----------------
 
