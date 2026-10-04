@@ -3,6 +3,7 @@ module GeoRuby
     %w(
       geometry
       circle
+      contour
       envelope
       geometry_collection
       geometry_factory

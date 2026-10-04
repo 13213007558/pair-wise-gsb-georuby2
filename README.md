@@ -93,6 +93,48 @@ Checking if a Point is inside a Polygon:
     polygon = Polygon.from_coordinates([[[0,0],[0,1],[1,1],[1,0]]],4326)
     polygon.contains_point?(point)
 
+Contouring a regular grid
+------------------------
+
+`Contour.from_grid` treats each grid cell with bilinear interpolation and
+returns open `LineString` geometries and closed `LinearRing` geometries.
+Intersections on shared edges are cached globally, so contours continue across
+cell boundaries instead of being returned as independent fragments.
+
+    grid = [
+      [0.0, 1.0, 0.0],
+      [1.0, 2.0, 1.0],
+      [0.0, 1.0, 0.0]
+    ]
+    result = Contour.from_grid(
+      grid,
+      level: 1.0,
+      origin_x: 0.0,
+      origin_y: 0.0,
+      cell_width: 1000.0,
+      cell_height: 1000.0,
+      srid: 4326
+    )
+    result.open_lines    # LineString geometries touching the grid boundary
+    result.closed_rings  # LinearRing geometries
+    result.polygons      # Polygon wrapping each closed ring
+
+Curves are tessellated with 16 interior samples per cell by default. Pass
+`curve_segments: 1` for one straight chord per cell crossing.
+
+Saddle cells use the bilinear value at the cell center as the asymptotic
+decider. For example, with corner values `[-1, 1, 1, 0.25]` the center is
+above the level and the positive region is one connected diagonal. Changing
+the last corner to `-0.25` moves the center below the level and produces two
+separate branches instead. At exactly `[-1, 1, 1, -1]`, the zero contour is a
+crossing at the cell center.
+
+Grid corners equal to the level are valid crossings and share the same point
+identity as neighboring cells. Cells entirely on one side or entirely equal
+to the level produce no line. `nil`, configured `nodata` values, and `NaN`
+mark missing measurements; a cell containing any missing corner is skipped and
+contours terminate on the neighboring valid-cell boundary.
+
 Input and output
 ----------------
 
