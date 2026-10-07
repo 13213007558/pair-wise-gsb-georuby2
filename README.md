@@ -210,6 +210,29 @@ GeoJSON support implemented by {Marcus Mateus}[http://github.com/marcusmateus] a
 - Writing of ESRI shapefiles
 - Reading of ESRI shapefiles
 - Tool to import spatial features in MySQL and PostGIS from a SHP file
+- Joint simplification of polygon sets (see below)
+
+### Joint simplification of polygon sets
+
+Simplifying adjacent polygons one by one (for instance with
+LineString#simplify) opens gaps along their shared boundaries.
+GeoRuby::SimpleFeatures::JointSimplifier simplifies a whole set of
+polygons at once and keeps the shared boundaries identical in every
+polygon:
+
+    simplifier = GeoRuby::SimpleFeatures::JointSimplifier.new(polygons, 0.5)
+    simplified = simplifier.simplify   # array of Polygon, input order
+    simplifier.warnings                # why some chains were kept as-is
+
+Shared boundaries are detected as reversed edge chains with exactly
+equal coordinates; the shared edge may be split into a different
+number of collinear short edges in each polygon. Junction vertices
+(where the boundaries of several polygons meet) and user supplied
+anchor points (+anchors:+ option, Point instances or [x, y] pairs)
+are never removed. A chain is only simplified within the given
+tolerance when doing so introduces no crossing, no contact between
+previously disjoint faces and no change of hole membership; otherwise
+the original chain is kept and the reason is reported in #warnings.
 
 
 ### Acknowledgement

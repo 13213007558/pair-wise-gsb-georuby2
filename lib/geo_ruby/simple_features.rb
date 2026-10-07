@@ -7,6 +7,7 @@ module GeoRuby
       geometry_collection
       geometry_factory
       helper
+      joint_simplifier
       line_string
       linear_ring
       multi_line_string
