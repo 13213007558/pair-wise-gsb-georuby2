@@ -60,6 +60,7 @@ Optional, require if you need the functionality:
     require 'geo_ruby/kml'        # KML data
     require 'geo_ruby/georss'     # GeoRSS
     require 'geo_ruby/geojson'    # GeoJSON
+    require 'geo_ruby/topojson'   # TopoJSON exporter
 
 TODO: https://github.com/AnalyticalGraphicsInc/czml-writer
 
@@ -203,6 +204,24 @@ TODO:
  * Improved / more tests
 
 GeoJSON support implemented by {Marcus Mateus}[http://github.com/marcusmateus] and released courtesy {SimpliTex}[http://simplitex.com].
+
+TopoJSON Support
+---------------
+
+Quantization is applied before topology extraction. Coordinates are rounded to an
+integer transform grid, zero-length edges introduced by quantization are removed, and
+shared boundary edges are stored once as TopoJSON arcs. Reverse boundaries use
+negative arc indexes.
+
+    require 'geo_ruby/topojson'
+    require 'geo_ruby/topojson_decoder'
+
+    topology = GeoRuby::TopoJSONExporter.export(features, extent: 10_000)
+    geometry = GeoRuby::TopoJSONDecoder.decode(topology)
+    quantized_coordinates = GeoRuby::TopoJSONDecoder.coordinates(topology, quantized: true)
+
+Objects that cannot remain valid at the requested quantization precision are emitted as
+null-valued geometries and described in `topology['diagnostics']`.
 
 
 ### Extra Features
