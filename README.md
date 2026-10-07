@@ -93,6 +93,36 @@ Checking if a Point is inside a Polygon:
     polygon = Polygon.from_coordinates([[[0,0],[0,1],[1,1],[1,0]]],4326)
     polygon.contains_point?(point)
 
+Spherical polygon area
+----------------------
+
+`Polygon#spherical_area` and `LinearRing#spherical_area` calculate signed
+area on a sphere. Coordinates are longitude/latitude in degrees, the caller
+provides the sphere radius, and every edge follows the shorter great-circle
+arc. Crossing the antimeridian does not require longitude wrapping:
+
+    polygon = Polygon.from_coordinates([[
+      [0, 90], [0, 0], [90, 0], [0, 90]
+    ]])
+    polygon.spherical_area(1) # Math::PI / 2, one eighth of a unit sphere
+
+Ring direction is retained in the signed result, so reversing a ring reverses
+its sign. A polygon sums every ring's signed area; correctly oriented holes
+subtract from the exterior. The result is not absolute-valued.
+
+The default interpretation is the enclosed region no larger than a hemisphere.
+Pass `larger_region: true` to explicitly select the complementary region
+larger than a hemisphere. That exterior-side choice is applied to the outer
+ring only; holes still contribute their signed areas. An exact hemisphere
+boundary contains antipodal points and is therefore rejected.
+
+A repeated closing point and other consecutive duplicate points are ignored.
+Degenerate rings with fewer than three distinct consecutive vertices, or rings
+lying on one great circle, have zero area. Adjacent antipodal points raise an
+`ArgumentError` because they do not identify a unique great-circle arc.
+Self-intersecting rings are not detected or supported and have undefined
+results.
+
 Input and output
 ----------------
 

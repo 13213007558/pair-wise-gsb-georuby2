@@ -16,6 +16,97 @@ describe GeoRuby::SimpleFeatures::Polygon do
 
   end
 
+  describe 'spherical area' do
+    let(:octant) do
+      [[0, 90], [0, 0], [90, 0], [0, 90]]
+    end
+
+    let(:reversed_octant) do
+      octant.reverse
+    end
+
+    let(:hole) do
+      [[0, 90], [20, 0], [10, 0], [0, 90]]
+    end
+
+    it 'calculates the area of an eighth of the sphere' do
+      polygon = described_class.from_coordinates([octant])
+
+      expect(polygon.spherical_area(1)).to be_within(1e-12).of(Math::PI / 2)
+      expect(polygon.spherical_area(2)).to be_within(1e-12).of(2 * Math::PI)
+      expect(polygon.spherical_signed_area(1)).to be_within(1e-12).of(Math::PI / 2)
+    end
+
+    it 'keeps ring orientation in the signed result' do
+      polygon = described_class.from_coordinates([reversed_octant])
+
+      expect(polygon.spherical_area(1)).to be_within(1e-12).of(-Math::PI / 2)
+    end
+
+    it 'uses the shorter great-circle arc across the antimeridian' do
+      ring = [[0, 90], [170, 0], [-170, 0], [0, 90]]
+      polygon = described_class.from_coordinates([ring])
+
+      expect(polygon.spherical_area(1)).to be_within(1e-12).of(Math::PI / 9)
+    end
+
+    it 'subtracts oppositely oriented hole rings' do
+      polygon = described_class.from_coordinates([octant, hole])
+
+      expect(polygon.spherical_area(1)).to be_within(1e-12).of(4 * Math::PI / 9)
+    end
+
+    it 'selects the complementary region larger than a hemisphere explicitly' do
+      polygon = described_class.from_coordinates([octant])
+      reversed_polygon = described_class.from_coordinates([reversed_octant])
+
+      expect(polygon.spherical_area(1, larger_region: true))
+        .to be_within(1e-12).of(-7 * Math::PI / 2)
+      expect(reversed_polygon.spherical_area(1, larger_region: true))
+        .to be_within(1e-12).of(7 * Math::PI / 2)
+    end
+
+    it 'uses the larger-region choice only for the exterior' do
+      polygon = described_class.from_coordinates([octant, hole])
+
+      expect(polygon.spherical_area(1, larger_region: true))
+        .to be_within(1e-12).of(-32 * Math::PI / 9)
+    end
+
+    it 'accepts a repeated closing point' do
+      open_octant = octant[0..-2] + [octant.first]
+      polygon = described_class.from_coordinates([open_octant])
+
+      expect(polygon.spherical_area(1)).to be_within(1e-12).of(Math::PI / 2)
+    end
+
+    it 'returns zero for a degenerate ring on one great circle' do
+      polygon = described_class.from_coordinates([[[0, 0], [10, 0], [20, 0], [0, 0]]])
+
+      expect(polygon.spherical_area(1)).to be_zero
+    end
+
+    it 'rejects adjacent antipodal points' do
+      polygon = described_class.from_coordinates([[[0, 0], [180, 0], [0, 10], [0, 0]]])
+
+      expect { polygon.spherical_area(1) }.to raise_error(ArgumentError)
+    end
+
+    it 'allows antipodal points that are not adjacent' do
+      polygon = described_class.from_coordinates([[
+        [0, 0], [90, 10], [180, 0], [90, -10], [0, 0]
+      ]])
+
+      expect(polygon.spherical_area(1)).to be_negative
+    end
+
+    it 'requires a positive radius from the caller' do
+      polygon = described_class.from_coordinates([octant])
+
+      expect { polygon.spherical_area(0) }.to raise_error(ArgumentError)
+    end
+  end
+
   describe 'tu converted' do
     # no test of the binary representation for linear_rings : always with polygons and like line_string
     it 'should test_polygon_creation' do

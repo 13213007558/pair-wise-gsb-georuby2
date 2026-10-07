@@ -97,6 +97,35 @@ module GeoRuby
         !@rings.select { |lr| lr.contains_point? point }.empty?
       end
 
+      # Returns the sum of the signed spherical areas of all rings.
+      #
+      # Ring coordinates are longitude/latitude in degrees and every edge
+      # follows the shorter great-circle arc. The first ring is treated as
+      # the exterior boundary solely by its position in the ring collection;
+      # subsequent rings are holes when they are spatially contained and use
+      # the opposite orientation. Because each ring contributes its signed
+      # area, a correctly oriented hole subtracts from the exterior instead
+      # of being absolute-valued and added back.
+      #
+      # See LinearRing#spherical_area for the +radius+ option and the
+      # supported input limitations. The <tt>larger_region</tt> option is
+      # applied only to the first ring because it chooses the exterior side
+      # of the polygon; hole rings continue to contribute signed small-side
+      # areas.
+      def spherical_area(radius, options = {})
+        return 0.0 if @rings.empty?
+
+        total = @rings.first.spherical_area(radius, options)
+        @rings[1..-1].each do |ring|
+          total += ring.spherical_area(
+            radius,
+            options.merge(larger_region: false)
+          )
+        end
+        total
+      end
+      alias_method :spherical_signed_area, :spherical_area
+
       # georss simple representation : outputs only the outer ring
       def georss_simple_representation(options)
         georss_ns = options[:georss_ns] || 'georss'
