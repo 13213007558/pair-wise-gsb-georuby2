@@ -71,6 +71,21 @@ module GeoRuby
         end
       end
 
+      def locate_along_measure(measure)
+        LinearReferencing.new(self).locate_along(measure)
+      end
+      alias_method :at_measure, :locate_along_measure
+
+      def slice_by_measure(start_measure, end_measure, include_start: true, include_end: true)
+        LinearReferencing.new(self).locate_between(
+          start_measure,
+          end_measure,
+          include_start: include_start,
+          include_end: include_end
+        )
+      end
+      alias_method :between_measures, :slice_by_measure
+
       # call to native Geo intersect, return true or false
       def intersects?(_other_line_string)
       end

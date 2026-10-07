@@ -4,8 +4,8 @@ module GeoRuby
   module SimpleFeatures
     # Represents a group of line strings (see LineString).
     class MultiLineString < GeometryCollection
-      def initialize(srid = DEFAULT_SRID, _with_z = false, _with_m = false)
-        super(srid)
+      def initialize(srid = DEFAULT_SRID, with_z = false, with_m = false)
+        super(srid, with_z, with_m)
       end
 
       def binary_geometry_type #:nodoc:
@@ -27,12 +27,27 @@ module GeoRuby
       end
 
       def to_line_string(_join = true)
-        LineString.from_points(points)
+        LineString.from_points(points, srid, with_z?, with_m?)
       end
 
       def to_coordinates
         geometries.map(&:to_coordinates)
       end
+
+      def locate_along_measure(measure)
+        LinearReferencing.new(self).locate_along(measure)
+      end
+      alias_method :at_measure, :locate_along_measure
+
+      def slice_by_measure(start_measure, end_measure, include_start: true, include_end: true)
+        LinearReferencing.new(self).locate_between(
+          start_measure,
+          end_measure,
+          include_start: include_start,
+          include_end: include_end
+        )
+      end
+      alias_method :between_measures, :slice_by_measure
 
       def as_json(_options = {})
         { type: 'MultiLineString', coordinates: to_coordinates }
