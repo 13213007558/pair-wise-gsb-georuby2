@@ -14,6 +14,7 @@ module GeoRuby
       multi_polygon
       point
       polygon
+      polygon_set_simplifier
     ).each do |rel_file|
       require File.join(File.dirname(__FILE__), 'simple_features', rel_file)
     end

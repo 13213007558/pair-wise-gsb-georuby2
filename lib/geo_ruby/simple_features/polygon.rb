@@ -97,6 +97,15 @@ module GeoRuby
         !@rings.select { |lr| lr.contains_point? point }.empty?
       end
 
+      def simplify_collection(epsilon = 1, anchors: [], report: false)
+        result = PolygonSetSimplifier.simplify([self], epsilon, anchors: anchors)
+        report ? result : result.multi_polygon.geometries.first
+      end
+
+      def simplify(epsilon = 1, anchors: [], report: false)
+        simplify_collection(epsilon, anchors: anchors, report: report)
+      end
+
       # georss simple representation : outputs only the outer ring
       def georss_simple_representation(options)
         georss_ns = options[:georss_ns] || 'georss'

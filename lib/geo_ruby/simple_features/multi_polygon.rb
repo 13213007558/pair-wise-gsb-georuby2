@@ -18,6 +18,15 @@ module GeoRuby
         end
       end
 
+      def simplify_collection(epsilon = 1, anchors: [], report: false)
+        result = PolygonSetSimplifier.simplify(geometries, epsilon, anchors: anchors)
+        report ? result : result.multi_polygon
+      end
+
+      def simplify(epsilon = 1, anchors: [], report: false)
+        simplify_collection(epsilon, anchors: anchors, report: report)
+      end
+
       # Text representation of a MultiPolygon
       def text_representation(allow_z = true, allow_m = true) #:nodoc:
         @geometries.map { |polygon| '(' + polygon.text_representation(allow_z, allow_m) + ')' }.join(',')
