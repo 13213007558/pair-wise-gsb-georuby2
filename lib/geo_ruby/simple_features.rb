@@ -4,6 +4,7 @@ module GeoRuby
       geometry
       circle
       envelope
+      frechet
       geometry_collection
       geometry_factory
       helper

@@ -211,6 +211,27 @@ GeoJSON support implemented by {Marcus Mateus}[http://github.com/marcusmateus] a
 - Reading of ESRI shapefiles
 - Tool to import spatial features in MySQL and PostGIS from a SHP file
 
+### Continuous Frechet distance
+
+LineString instances can be compared with the continuous Frechet distance
+(Alt & Godau), which walks both curves monotonely (pauses allowed) instead
+of matching vertex to vertex, so the result does not depend on sampling
+density:
+
+    a = GeoRuby::SimpleFeatures::LineString.from_coordinates([[0, 0], [5, 1], [10, 0]])
+    b = GeoRuby::SimpleFeatures::LineString.from_coordinates([[0, 0], [10, 0]])
+
+    r = a.frechet_distance(b)          # certified interval
+    r.distance                         # midpoint estimate
+    r.lower_bound .. r.upper_bound     # exact value lies inside
+    r.error_bound                      # <= requested tolerance
+
+    a.frechet_within?(b, 1.0)          # decision: is the distance <= 1.0?
+    d = a.frechet_decision(b, 1.0)     # same, plus a monotone matching
+    d.witness                          #   [[s, t], ...] for review
+
+Closed line strings are compared as given, starting at their first point.
+
 
 ### Acknowledgement
 
