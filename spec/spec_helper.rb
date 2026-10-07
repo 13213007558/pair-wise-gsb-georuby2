@@ -15,6 +15,7 @@ require 'geo_ruby/gpx'
 require 'geo_ruby/kml'
 require 'geo_ruby/georss'
 require 'geo_ruby/geojson'
+require 'geo_ruby/topojson'
 
 if ENV['CI']
   require 'coveralls'

@@ -205,6 +205,25 @@ TODO:
 GeoJSON support implemented by {Marcus Mateus}[http://github.com/marcusmateus] and released courtesy {SimpliTex}[http://simplitex.com].
 
 
+TopoJSON Export
+---------------
+
+Require the optional exporter and pass a geometry, GeoJSON feature,
+feature collection, array, or named object hash:
+
+    require 'geo_ruby/topojson'
+
+    result = GeoRuby::TopoJSONExporter.export(feature_collection, quantization: 10_000)
+    result.topology    # Hash with type, objects, arcs and transform
+    result.diagnostics # Objects made degenerate by quantization
+    result.to_json
+
+Coordinates are quantized before topology construction. Zero-length edges
+introduced when adjacent points round to the same integer position are removed,
+and coincident boundaries are stored once and referenced with TopoJSON's
+negative reverse-arc indices.
+
+
 ### Extra Features
 
 - Writing of ESRI shapefiles
