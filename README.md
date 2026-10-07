@@ -1,6 +1,43 @@
 GeoRuby
 =======
 
+Ellipsoidal geodesics
+---------------------
+
+`Point#geodesic_inverse` (alias `geodesic_to`) computes the geodesic
+(shortest path) between two points on an ellipsoid of revolution and
+returns a `Geodesic::InverseResult`:
+
+- `distance`: ellipsoidal distance in meters
+- `azimuth1` / `azimuth2`: forward azimuths in degrees at both ends
+- `converged?`: false if the solver did not converge (the estimate is
+  still ellipsoidal - a spherical approximation is never substituted)
+- `azimuths_unique?`: false when several shortest geodesics exist
+  (coincident or exactly antipodal points, pole-to-pole lines): the
+  distance is still exact but the azimuths are not uniquely defined
+- `error_estimate`: estimated upper bound of the distance error
+
+`Point#geodesic_direct` (alias `geodesic_destination`) solves the
+direct problem: from a point, an initial azimuth in degrees and a
+distance in meters, it returns the destination point and the forward
+azimuth there.  The ellipsoid defaults to WGS84 and can be given as an
+`Ellipsoid`, an `[a, f]` array or an `{a:, f:}` hash:
+
+    p1 = GeoRuby::SimpleFeatures::Point.from_x_y(-73.8, 40.6)
+    p2 = GeoRuby::SimpleFeatures::Point.from_x_y(-0.5, 51.6)
+    r = p1.geodesic_inverse(p2)                       # WGS84
+    r = p1.geodesic_inverse(p2, ellipsoid: [6378145.0, 1.0 / 293.0])
+    d = p1.geodesic_direct(r.azimuth1, r.distance)    # lands on p2
+
+The implementation (Bessel's auxiliary sphere with exact Fourier
+series for the distance and longitude integrals) handles
+near-antipodal points, where the Vincenty iteration used by
+`Point#ellipsoidal_distance` fails to converge, and works entirely
+offline: no external geocoding service or GIS command is invoked.
+The planar `euclidian_distance` and the spherical/Vincenty distance
+methods are unchanged.
+
+
 This is intended as a holder for geometric data.
 The data model roughly follows the OGC "Simple Features for SQL" specification,
 so it should play nice with data returned from PostGIS or any Spatial Extensions (MongoDB, MySQL...).

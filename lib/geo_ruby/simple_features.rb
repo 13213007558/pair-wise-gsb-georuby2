@@ -3,7 +3,9 @@ module GeoRuby
     %w(
       geometry
       circle
+      ellipsoid
       envelope
+      geodesic
       geometry_collection
       geometry_factory
       helper

@@ -133,6 +133,32 @@ module GeoRuby
         b * a_bis * (sigma - delta_sigma)
       end
 
+      # Inverse geodesic problem on an ellipsoid of revolution (WGS84 by
+      # default): returns a Geodesic::InverseResult giving the
+      # ellipsoidal distance in meters and the forward azimuths in
+      # degrees at both ends of the shortest geodesic, together with a
+      # convergence flag and an error estimate.  Unlike
+      # #ellipsoidal_distance (Vincenty), this also handles
+      # near-antipodal points, and it never falls back to a spherical
+      # approximation.
+      #
+      # The +ellipsoid+ argument may be an Ellipsoid, [a, f], {a:, f:}
+      # or nil (defaults to Ellipsoid::WGS84).
+      def geodesic_inverse(other, ellipsoid: nil)
+        Geodesic.inverse(self, other, ellipsoid)
+      end
+      alias_method :geodesic_to, :geodesic_inverse
+
+      # Direct geodesic problem: from this point, travel +distance+
+      # meters along the geodesic whose initial azimuth (degrees,
+      # clockwise from north) is +azimuth+.  Returns a
+      # Geodesic::DirectResult giving the destination Point and the
+      # forward azimuth at the destination.
+      def geodesic_direct(azimuth, distance, ellipsoid: nil)
+        Geodesic.direct(self, azimuth, distance, ellipsoid)
+      end
+      alias_method :geodesic_destination, :geodesic_direct
+
       # Orthogonal Distance
       # Based http://www.allegro.cc/forums/thread/589720
       def orthogonal_distance(line, tail = nil)

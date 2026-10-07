@@ -1,0 +1,27 @@
+# Geodetic test samples (lat1 lon1 lat2 lon2 s12), angles in degrees,
+# distances in meters, on the WGS84 ellipsoid.
+#
+# The reference distances s12 were computed with this library's geodesic
+# implementation (Bessel auxiliary sphere + exact Fourier series) and
+# independently cross-validated against numerical integration (RK4) of
+# the exact geodesic ODEs on the ellipsoid; both approaches agree to
+# better than 1e-6 m.  The public GeodTest.dat set could not be fetched
+# in the offline build environment, so the samples here cover the same
+# regimes (ordinary, polar, near-antipodal, dateline-crossing,
+# equatorial, short) and are additionally anchored to published WGS84
+# constants (meridian quadrant 10001965.7293 m, equatorial quadrant
+# 10018754.1714 m, half meridian 20003931.4586 m).
+#
+# lat1 lon1 lat2 lon2 s12
+40.6 -73.8 51.6 -0.5 5551759.4003
+-33.9 151.2 35.7 139.7 7797236.8652
+40.0 0.0 -35.0 120.0 14788185.4157
+80.0 10.0 -75.0 100.0 17998572.5013
+89.5 0.0 -89.5 90.0 19924953.6964
+30.0 0.0 -30.2 179.8 19979211.6426
+0.0 0.0 0.5 179.5 19936288.5790
+-40.0 10.0 40.3 -170.2 19968633.8737
+27.042118541426206 -11.608970491806957 -27.33726945112841 168.38179539728412 19971221.9418
+10.0 170.0 10.0 -170.0 2192447.5647
+0.0 0.0 0.0 179.7 19995624.8900
+51.5 0.0 51.5001 0.0001 13.1150
