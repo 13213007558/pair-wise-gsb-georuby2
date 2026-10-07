@@ -93,6 +93,56 @@ Checking if a Point is inside a Polygon:
     polygon = Polygon.from_coordinates([[[0,0],[0,1],[1,1],[1,0]]],4326)
     polygon.contains_point?(point)
 
+Map matching
+------------
+
+GeoRuby ships an offline map matcher (GeoRuby::MapMatching) that snaps a
+time-ordered sequence of GPS observations to a directed road polyline
+network. The whole sequence is matched jointly with a Viterbi search, so
+noisy points bouncing between parallel roads stay on a drivable path instead
+of jumping to the per-point nearest road.
+
+    require 'geo_ruby/map_matching'
+
+    network = GeoRuby::MapMatching::Network.new([
+      GeoRuby::MapMatching::Edge.new('main', [[0, 0], [1000, 0]]),
+      GeoRuby::MapMatching::Edge.new('ramp', [[0, 0], [0, 500]], oneway: true)
+    ])
+    matcher = GeoRuby::MapMatching::Matcher.new(network, sigma: 5.0, beta: 30.0, max_radius: 30.0)
+    result = matcher.match([{ time: 0, point: [10.0, 2.0] },
+                            { time: 10, point: nil },              # missing fix
+                            { time: 20, point: [500.0, 1.0] }])
+    result.segments.first.matched_points  # positions on the road (edge id + offset)
+    result.segments.first.routes          # network routes between consecutive positions
+    result.segments.first.score           # emission + transition cost of the segment
+    result.unmatched                      # indices of missing/unmatchable observations
+
+Semantics:
+
+* Candidates are projections anywhere on a segment, not only road vertices.
+  Emission cost is gaussian: d^2 / (2 * sigma^2) with d the perpendicular
+  distance to the projection.
+* Transition cost compares the network route distance with the straight-line
+  displacement of the two observations: |route - displacement| / beta.
+* One-way edges are only traversed forward. Moving backwards on a one-way
+  edge requires a loop through the rest of the network; on a two-way edge it
+  is allowed directly and costs the absolute offset difference.
+* Disconnected regions have no route between them. When no candidate of an
+  observation is reachable from the previous one, the sequence is split into
+  explicit segments; segments are never joined by a synthetic straight line.
+* Observations with a nil point, or with no candidate inside max_radius, are
+  skipped and reported in Result#unmatched; the transition bridging the gap
+  uses the displacement between the surrounding valid observations.
+* Ties are broken deterministically: lower total cost, then lower
+  perpendicular distance, then smaller edge id (as strings), then smaller
+  offset along the edge.
+* Edge endpoints connect when they share exact coordinates; pass explicit
+  node ids (nodes: [from, to]) to model overpasses that cross geometrically
+  without connecting.
+
+Coordinates are planar (e.g. meters in a projected CRS); all distances and
+parameters share the same unit.
+
 Input and output
 ----------------
 
