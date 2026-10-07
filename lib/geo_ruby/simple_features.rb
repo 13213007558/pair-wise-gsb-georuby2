@@ -14,6 +14,7 @@ module GeoRuby
       multi_polygon
       point
       polygon
+      spherical_area
     ).each do |rel_file|
       require File.join(File.dirname(__FILE__), 'simple_features', rel_file)
     end

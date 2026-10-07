@@ -210,6 +210,35 @@ GeoJSON support implemented by {Marcus Mateus}[http://github.com/marcusmateus] a
 - Writing of ESRI shapefiles
 - Reading of ESRI shapefiles
 - Tool to import spatial features in MySQL and PostGIS from a SHP file
+- Spherical (great-circle) area for geographic rings and polygons
+
+
+### Spherical area
+
+`LinearRing#spherical_area(radius)` and `Polygon#spherical_area(radius)`
+compute the area of a longitude/latitude ring or polygon on a sphere of the
+caller-supplied radius (result in radius^2 units), in pure Ruby. Edges are
+interpreted as the *shorter* great-circle arc between vertices, so polygons
+that enclose a pole work as expected where a planar shoelace formula would
+not. `#spherical_signed_area(radius)` returns the raw signed value.
+
+- Direction matters: the signed area is positive when the enclosed region
+  lies to the left of the traversal direction; reversing a ring negates it.
+- The antimeridian is safe: computation uses 3D unit vectors, never
+  longitude differences, so rings crossing 180° follow the short arc.
+- Regions larger than a hemisphere require an explicit rule:
+  `spherical_area(radius, rule: :left)` (area left of the traversal),
+  `:smaller` (smaller of the two complementary regions) or `:signed`.
+  Without a rule, an ArgumentError is raised when the magnitude of the
+  result exceeds a hemisphere.
+- Adjacent (near-)antipodal vertices are rejected with an ArgumentError:
+  the shorter arc between them is not unique.
+- A repeated closing point is ignored; rings with fewer than 3 distinct
+  vertices or collapsed on a great circle return 0.0; self-intersecting
+  rings are not validated and yield the algebraic sum of their lobes.
+- Polygon holes subtract when wound opposite to the outer ring. Signed
+  values are never absolutized, so a hole wound like the outer ring adds
+  its area instead.
 
 
 ### Acknowledgement
