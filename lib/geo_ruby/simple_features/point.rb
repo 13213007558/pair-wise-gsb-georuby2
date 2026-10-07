@@ -133,6 +133,19 @@ module GeoRuby
         b * a_bis * (sigma - delta_sigma)
       end
 
+      # Inverse ellipsoidal geodesic solution. Returns a GeodesicSolution with
+      # distance, forward/reverse azimuths, convergence state and error bounds.
+      # x is longitude and y is latitude, both in degrees.
+      def geodesic_inverse(point, ellipsoid = Ellipsoid::WGS84)
+        Geodesic.inverse(self, point, ellipsoid)
+      end
+
+      # Direct ellipsoidal geodesic solution. The endpoint is included in the
+      # returned GeodesicSolution.
+      def geodesic_direct(azimuth, distance, ellipsoid = Ellipsoid::WGS84)
+        Geodesic.direct(self, azimuth, distance, ellipsoid)
+      end
+
       # Orthogonal Distance
       # Based http://www.allegro.cc/forums/thread/589720
       def orthogonal_distance(line, tail = nil)
