@@ -14,6 +14,7 @@ module GeoRuby
       multi_polygon
       point
       polygon
+      linear_referencing
     ).each do |rel_file|
       require File.join(File.dirname(__FILE__), 'simple_features', rel_file)
     end

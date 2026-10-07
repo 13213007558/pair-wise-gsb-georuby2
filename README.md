@@ -37,6 +37,28 @@ They can be in 2D, 3DZ, 3DM, and 4D.
 
 On top of this an Envelope class is available, to contain the bounding box of a geometry.
 
+Linear referencing (measured lines)
+-----------------------------------
+
+LineString and MultiLineString with an M ordinate support measure-based
+queries. M is treated as a milepost: it is interpolated segment by segment
+and is not required to be monotonic, so the same measure may occur several
+times on one line.
+
+    line = LineString.from_coordinates([[0,0,0],[10,0,10],[20,0,20],[30,0,10],[40,0,10]], 4326, false, true)
+
+    line.locate_along(15)      #=> MultiPoint: both crossings of M 15
+    line.locate_along(10)      #=> GeometryCollection: an isolated Point plus
+                               #   the LineString of the constant-M segment
+    line.locate_between(12, 18)                 #=> MultiLineString clipped to M 12..18
+    line.locate_between(10, 20, include_start: false)  # open interval start
+
+The result type reflects what was found: Point/MultiPoint for isolated
+locations, LineString/MultiLineString for connected pieces (pieces sharing
+a junction point are merged), GeometryCollection for a mix, and nil when
+nothing matches. Z is interpolated with the same parameter, and SRID and
+direction of travel are preserved.
+
 
 Installation
 ------------
