@@ -231,6 +231,157 @@ describe GeoRuby::SimpleFeatures::LineString do
     end
   end
 
+  describe 'Continuous Fréchet distance' do
+    let(:dense_line) do
+      GeoRuby::SimpleFeatures::LineString.from_coordinates([
+        [0, 0], [1000, 0], [4000, 0], [8000, 0], [10000, 0]
+      ])
+    end
+
+    let(:shifted_samples_line) do
+      GeoRuby::SimpleFeatures::LineString.from_coordinates([
+        [0, 0], [3000, 0], [6000, 0], [7000, 0], [10000, 0]
+      ])
+    end
+
+    def verify_monotone_evidence(decision)
+      expect(decision.within?).to be(true)
+      expect(decision.evidence).not_to be_empty
+      expect(decision.evidence.first[:u]).to eq(0.0)
+      expect(decision.evidence.first[:v]).to eq(0.0)
+      expect(decision.evidence.last[:u]).to eq(1.0)
+      expect(decision.evidence.last[:v]).to eq(1.0)
+
+      decision.evidence.each_cons(2) do |left_step, right_step|
+        expect(right_step[:u]).to be >= left_step[:u]
+        expect(right_step[:v]).to be >= left_step[:v]
+      end
+
+      slack = decision.threshold + decision.numeric_tolerance
+      decision.evidence.each do |step|
+        expect(step[:distance]).to be <= slack
+        expect(step[:first_point].length).to eq(2)
+        expect(step[:second_point].length).to eq(2)
+      end
+
+      decision.evidence.each_cons(2) do |left_step, right_step|
+        first_span = right_step[:u] - left_step[:u]
+        second_span = right_step[:v] - left_step[:v]
+        largest_span = [first_span, second_span].max
+        next if largest_span.zero?
+
+        4.times do |index|
+          fraction = index / 4.0
+          point = left_step[:first_point].each_with_index.map do |coordinate, axis|
+            coordinate + (right_step[:first_point][axis] - coordinate) * fraction
+          end
+          other = left_step[:second_point].each_with_index.map do |coordinate, axis|
+            coordinate + (right_step[:second_point][axis] - coordinate) * fraction
+          end
+          distance = Math.sqrt((point[0] - other[0])**2 + (point[1] - other[1])**2)
+          expect(distance).to be <= slack + 1e-10
+        end
+      end
+    end
+
+    it 'measures continuous movement instead of corresponding vertex distances' do
+      vertex_distances = dense_line.points.zip(shifted_samples_line.points).map do |point, other|
+        point.euclidian_distance(other)
+      end
+      expect(vertex_distances.max).to eq(2000.0)
+
+      result = dense_line.continuous_frechet_distance(shifted_samples_line)
+      decision = dense_line.continuous_frechet_threshold_decision(
+        shifted_samples_line, 1e-6
+      )
+
+      expect(result.distance).to be_within(result.error_bound).of(0.0)
+      expect(decision.maximum_evidence_distance).to be <= 1e-6 + decision.numeric_tolerance
+      verify_monotone_evidence(decision)
+    end
+
+    it 'is symmetric when the input order is exchanged' do
+      first_result = dense_line.continuous_frechet_distance(shifted_samples_line)
+      second_result = shifted_samples_line.continuous_frechet_distance(dense_line)
+
+      expect(second_result.distance).to be_within(1e-12).of(first_result.distance)
+      expect(second_result.error_bound).to be_within(1e-12).of(first_result.error_bound)
+      expect(shifted_samples_line).to be_continuous_frechet_within_threshold(
+        dense_line, 1e-6
+      )
+    end
+
+    it 'accepts evidence when the threshold exactly touches the free-space boundary' do
+      first = GeoRuby::SimpleFeatures::LineString.from_coordinates([[0, 0], [10, 0]])
+      second = GeoRuby::SimpleFeatures::LineString.from_coordinates([[0, 1], [10, 1]])
+
+      expect(first.continuous_frechet_within_threshold?(second, 1.0)).to be(true)
+      expect(first.continuous_frechet_within_threshold?(second, 0.999)).to be(false)
+
+      decision = first.continuous_frechet_threshold_decision(second, 1.0)
+      verify_monotone_evidence(decision)
+      expect(decision.maximum_evidence_distance).to be_within(1e-11).of(1.0)
+    end
+
+    it 'supports zero-length segments' do
+      first = GeoRuby::SimpleFeatures::LineString.from_coordinates([
+        [0, 0], [0, 0], [1, 0]
+      ])
+      second = GeoRuby::SimpleFeatures::LineString.from_coordinates([[0, 0], [1, 0]])
+
+      result = first.continuous_frechet_distance(second)
+      expect(result.distance).to be_within(result.error_bound).of(0.0)
+      decision = first.continuous_frechet_threshold_decision(second, 0.0)
+      verify_monotone_evidence(decision)
+    end
+
+    it 'supports a single-point trajectory' do
+      point_line = GeoRuby::SimpleFeatures::LineString.from_coordinates([[1, 0]])
+      line = GeoRuby::SimpleFeatures::LineString.from_coordinates([
+        [0, 0], [1, 0], [3, 0]
+      ])
+
+      result = point_line.continuous_frechet_distance(line)
+      expect(result.distance).to eq(2.0)
+      expect(result.error_bound).to be < 1e-9
+      expect(point_line.continuous_frechet_within_threshold?(line, 2.0)).to be(true)
+      expect(line.continuous_frechet_within_threshold?(point_line, 2.0)).to be(true)
+      expect(point_line.continuous_frechet_within_threshold?(line, 1.999)).to be(false)
+
+      decision = point_line.continuous_frechet_threshold_decision(line, 2.0)
+      expect(decision.evidence.map { |step| [step[:u], step[:v]] }).to eq(
+        [[0.0, 0.0], [0.0, 0.5], [0.0, 1.0]]
+      )
+    end
+
+    it 'compares closed trajectories from their supplied first point' do
+      first = GeoRuby::SimpleFeatures::LineString.from_coordinates([
+        [0, 0], [10, 0], [10, 10], [0, 10], [0, 0]
+      ])
+      shifted = GeoRuby::SimpleFeatures::LineString.from_coordinates([
+        [0, 1], [10, 1], [10, 11], [0, 11], [0, 1]
+      ])
+      rotated = GeoRuby::SimpleFeatures::LineString.from_coordinates([
+        [10, 0], [10, 10], [0, 10], [0, 0], [10, 0]
+      ])
+
+      result = first.continuous_frechet_distance(shifted)
+      expect(result.distance).to be_within(result.error_bound).of(1.0)
+      expect(first.continuous_frechet_within_threshold?(shifted, 1.0)).to be(true)
+      expect(first.continuous_frechet_within_threshold?(shifted, 0.999)).to be(false)
+      expect(first.continuous_frechet_within_threshold?(rotated, 9.0)).to be(false)
+      expect(first.continuous_frechet_within_threshold?(rotated, 10.0)).to be(true)
+    end
+
+    it 'rejects planar API calls for three-dimensional line strings' do
+      first = GeoRuby::SimpleFeatures::LineString.from_coordinates([[0, 0, 0]], 4326, true)
+      second = GeoRuby::SimpleFeatures::LineString.from_coordinates([[0, 0]])
+
+      expect { first.continuous_frechet_distance(second) }
+        .to raise_error(ArgumentError, 'continuous Fréchet distance is planar only')
+    end
+  end
+
   describe 'Simplify' do
 
     let(:line) { GeoRuby::SimpleFeatures::LineString.from_coordinates([[6, 0], [4, 1], [3, 4], [4, 6], [5, 8], [5, 9], [4, 10], [6, 15]], 4326) }

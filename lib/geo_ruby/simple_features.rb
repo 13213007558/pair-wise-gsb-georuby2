@@ -3,6 +3,7 @@ module GeoRuby
     %w(
       geometry
       circle
+      continuous_frechet
       envelope
       geometry_collection
       geometry_factory

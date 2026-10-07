@@ -79,6 +79,22 @@ Creating a LineString:
 
     LineString.from_coordinates([[1,1],[2,2]],4326)
 
+Computing the continuous planar Fréchet distance between two LineStrings:
+
+    sampled       = LineString.from_coordinates([[0,0],[1000,0],[4000,0],[8000,0],[10000,0]])
+    shifted       = LineString.from_coordinates([[0,0],[3000,0],[6000,0],[7000,0],[10000,0]])
+    result        = sampled.continuous_frechet_distance(shifted)
+    result.distance       # approximate distance
+    result.error_bound    # numerical error bound
+
+The corresponding vertex distances can be large (2000 in this example) while the
+continuous distance is zero because both polylines describe the same path.
+Use `continuous_frechet_threshold_decision(other, threshold)` for a threshold
+decision; when it is positive, `evidence` contains a monotone sequence of matching
+parameters and planar points for checking the free-space path. Zero-length
+segments and single-point lines are supported, and closed lines are compared
+from their supplied first point.
+
 
 Creating a Polygon:
 

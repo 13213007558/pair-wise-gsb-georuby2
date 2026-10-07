@@ -1,4 +1,5 @@
 require 'geo_ruby/simple_features/geometry'
+require 'geo_ruby/simple_features/continuous_frechet'
 
 module GeoRuby
   module SimpleFeatures
@@ -89,6 +90,27 @@ module GeoRuby
           total += p.euclidian_distance(@points[i + 1]) if @points[i + 1]
         end
         total
+      end
+
+      # Continuous planar Fréchet distance. The returned value includes a
+      # numerical error bound. Zero-length segments and single-point lines are
+      # supported, and closed lines begin at their supplied first point.
+      def continuous_frechet_distance(other, iterations: 64,
+                                      tolerance: ContinuousFrechet::NUMERIC_TOLERANCE)
+        ContinuousFrechet.new(self, other, tolerance).distance(iterations)
+      end
+
+      # Checks whether a continuous monotone matching exists at +threshold+.
+      def continuous_frechet_within_threshold?(other, threshold,
+                                                tolerance: ContinuousFrechet::NUMERIC_TOLERANCE)
+        continuous_frechet_threshold_decision(other, threshold, tolerance: tolerance).within?
+      end
+
+      # Returns a threshold decision and a monotone free-space path that can be
+      # independently checked when the decision is positive.
+      def continuous_frechet_threshold_decision(other, threshold,
+                                                tolerance: ContinuousFrechet::NUMERIC_TOLERANCE)
+        ContinuousFrechet.new(self, other, tolerance).decision(threshold)
       end
 
       # Tests the equality of line strings
