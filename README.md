@@ -211,6 +211,42 @@ GeoJSON support implemented by {Marcus Mateus}[http://github.com/marcusmateus] a
 - Reading of ESRI shapefiles
 - Tool to import spatial features in MySQL and PostGIS from a SHP file
 
+### Offline map matching
+
+`require 'geo_ruby/map_matcher'` snaps a time-ordered sequence of noisy
+(and possibly missing) GPS positions onto a directed road network and
+recovers the route driven between consecutive matches. It is a Hidden
+Markov Model matcher (Newson & Krumm style) decoded jointly with
+Viterbi: Gaussian emission on the projection distance (+sigma+),
+exponential transition on the difference between the reachable network
+route distance and the straight-line observation displacement (+beta+).
+
+- Candidates are projections anywhere on an edge polyline, not only on
+  road vertices.
+- One-way edges are honoured; reversing on a two-way edge costs the
+  travelled distance plus a configurable `u_turn_penalty`, and on a
+  one-way edge is only possible by looping through the network.
+- Edges connect only at shared vertices, so overpasses and disconnected
+  components have no route between them.
+- When no reachable transition exists the sequence is split into
+  explicit segments (`MatchResult#breaks`) — never joined by fake
+  straight lines. Missing observations are bridged and reported in
+  `MatchResult#unmatched`.
+- Ties between equally scored paths are broken deterministically
+  (candidate order: distance, edge id, fraction). Each segment reports
+  its total, emission and transition log-probability scores.
+
+```ruby
+net = GeoRuby::MapMatcher::RoadNetwork.new([
+  { id: :main, points: [[0, 0], [100, 0], [200, 0]], oneway: true }
+])
+matcher = GeoRuby::MapMatcher::Matcher.new(net, sigma: 5.0, beta: 30.0)
+result = matcher.match([{ t: 0, x: 10.2, y: 1.1 }, { t: 1, x: 29.8, y: 0.9 }])
+result.segments.first.matches      # matched positions on edges
+result.segments.first.transitions  # routes between consecutive matches
+```
+
+Coordinates must be planar (use a projected CRS, units in meters).
 
 ### Acknowledgement
 
